@@ -91,6 +91,10 @@ const dragActive = ref(false)
 const notice = ref('')
 const now = ref(Date.now())
 const earnedCarrot = ref(0)
+const maxDate = computed(() => {
+  const today = new Date()
+  return today.toISOString().split('T')[0]
+})
 
 const selectedTrack = computed(() => tracks.value.find((track) => track.id === selectedTrackId.value) ?? tracks.value[0] ?? null)
 const readyTracks = computed(() =>
@@ -957,7 +961,7 @@ async function mapLimit<T, R>(items: T[], limit: number, worker: (item: T) => Pr
     <div
         class="pointer-events-none fixed inset-0 -z-10 opacity-[0.18] [background-image:linear-gradient(rgba(23,19,12,.16)_1px,transparent_1px),linear-gradient(90deg,rgba(23,19,12,.14)_1px,transparent_1px)] [background-size:42px_42px]"></div>
 
-    <header class="sticky top-0 z-20 border-b border-[#17130c]/10 bg-[#f4efe5]/85 backdrop-blur-xl">
+    <header class="sticky top-0 z-30 border-b border-[#17130c]/10 bg-[#f4efe5]/85 backdrop-blur-xl">
       <div class="mx-auto flex max-w-[1680px] flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-5">
         <div>
           <p class="text-xs font-black uppercase tracking-[0.28em] text-[#0f766e]">music upload</p>
@@ -980,7 +984,7 @@ async function mapLimit<T, R>(items: T[], limit: number, worker: (item: T) => Pr
 
     <section
         class="mx-auto grid max-w-[1680px] items-start gap-5 px-4 py-5 sm:px-5 lg:grid-cols-[0.78fr_1.34fr_1.08fr] xl:gap-6">
-      <aside class="space-y-5 lg:sticky lg:top-24">
+      <aside class="space-y-5 lg:sticky lg:top-24 lg:self-start">
         <div
             class="reveal-card overflow-hidden rounded-[2rem] border border-[#17130c]/10 bg-[#17130c] p-6 text-[#f8f1e3] shadow-xl shadow-[#17130c]/15">
           <div class="flex items-center gap-3">
@@ -1202,7 +1206,7 @@ async function mapLimit<T, R>(items: T[], limit: number, worker: (item: T) => Pr
       </section>
 
       <aside
-          class="reveal-card scroll-soft rounded-[2rem] border border-[#17130c]/10 bg-white/78 p-5 shadow-xl shadow-[#17130c]/10 backdrop-blur lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)] lg:overflow-auto xl:p-6">
+          class="reveal-card scroll-soft rounded-[2rem] border border-[#17130c]/10 bg-white/78 p-5 shadow-xl shadow-[#17130c]/10 backdrop-blur lg:sticky lg:top-24 lg:self-start lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto xl:p-6">
         <template v-if="selectedTrack">
           <div class="rounded-[1.75rem] bg-[#17130c] p-5 text-[#f8f1e3] shadow-lg shadow-[#17130c]/10">
             <div class="flex items-start justify-between gap-3">
@@ -1457,6 +1461,7 @@ async function mapLimit<T, R>(items: T[], limit: number, worker: (item: T) => Pr
                         v-model="selectedTrack.headlessDraft.releaseDate"
                         class="mt-2 w-full rounded-2xl border border-[#17130c]/10 bg-white/90 px-4 py-3 outline-none focus:border-[#b45309]"
                         type="date"
+                        :max="maxDate"
                     >
                   </label>
                   <label

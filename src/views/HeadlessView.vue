@@ -37,6 +37,13 @@ const dragMediaId = ref('')
 const headlessPage = ref(1)
 const headlessTotal = ref(0)
 
+type ModalAction = 'delete-song' | 'delete-media' | 'move-media' | null
+const modalAction = ref<ModalAction>(null)
+const modalTitle = ref('')
+const modalMessage = ref('')
+const modalConfirmText = ref('确认')
+const modalData = ref<any>(null)
+
 const selectedSong = computed(() => headlessSongs.value.find((song) => song.song_id === selectedSongId.value) ?? null)
 const selectedMedia = computed(() => medias.value.find((media) => media.media_id === selectedMediaId.value) ?? medias.value[0] ?? null)
 const hasMoreHeadlessSongs = computed(() => headlessSongs.value.length < headlessTotal.value)
@@ -173,6 +180,15 @@ async function moveSelectedMedia(targetSong: MusicSong, mediaId = selectedMedia.
     return
   }
 
+  modalAction.value = 'move-media'
+  modalTitle.value = '移动媒体资源'
+  modalMessage.value = `确定要将资源移动到「${targetSong.name}」吗？`
+  modalConfirmText.value = '移动'
+  modalData.value = { targetSong, mediaId }
+}
+
+async function confirmMoveMedia() {
+  const { targetSong, mediaId } = modalData.value
   isMoving.value = true
 
   try {
@@ -190,6 +206,7 @@ async function moveSelectedMedia(targetSong: MusicSong, mediaId = selectedMedia.
   } finally {
     isMoving.value = false
     dragMediaId.value = ''
+    closeModal()
   }
 }
 
@@ -199,7 +216,17 @@ async function removeMedia(media: MusicMedia) {
     notice.value = '只能删除自己上传的资源'
     return
   }
-  if (!window.confirm(`删除资源 ${media.media_id}？`)) return
+
+  modalAction.value = 'delete-media'
+  modalTitle.value = '删除媒体资源'
+  modalMessage.value = `确定要删除资源 ${media.media_id} 吗？此操作无法撤销。`
+  modalConfirmText.value = '删除'
+  modalData.value = media
+}
+
+async function confirmDeleteMedia() {
+  const media = modalData.value
+  if (!selectedSong.value) return
 
   try {
     await deleteSongMedia(selectedSong.value.song_id, media.media_id)
@@ -207,6 +234,8 @@ async function removeMedia(media: MusicMedia) {
     await loadMedias(selectedSong.value.song_id)
   } catch (error) {
     notice.value = formatError(error)
+  } finally {
+    closeModal()
   }
 }
 
@@ -216,14 +245,44 @@ async function removeHeadlessSong() {
     notice.value = '只有管理员可以删除群星歌曲'
     return
   }
-  if (!window.confirm(`删除群星歌曲「${selectedSong.value.name}」？`)) return
+
+  modalAction.value = 'delete-song'
+  modalTitle.value = '删除群星歌曲'
+  modalMessage.value = `确定要删除群星歌曲「${selectedSong.value.name}」吗？此操作会删除该歌曲及其所有资源，无法撤销。`
+  modalConfirmText.value = '删除'
+  modalData.value = selectedSong.value
+}
+
+async function confirmDeleteSong() {
+  const song = modalData.value
+  if (!song) return
 
   try {
-    await deleteSong(selectedSong.value.song_id)
+    await deleteSong(song.song_id)
     notice.value = '群星歌曲已删除'
     await refreshHeadlessSongs()
   } catch (error) {
     notice.value = formatError(error)
+  } finally {
+    closeModal()
+  }
+}
+
+function closeModal() {
+  modalAction.value = null
+  modalTitle.value = ''
+  modalMessage.value = ''
+  modalConfirmText.value = '确认'
+  modalData.value = null
+}
+
+async function confirmModal() {
+  if (modalAction.value === 'delete-song') {
+    await confirmDeleteSong()
+  } else if (modalAction.value === 'delete-media') {
+    await confirmDeleteMedia()
+  } else if (modalAction.value === 'move-media') {
+    await confirmMoveMedia()
   }
 }
 
@@ -447,12 +506,12 @@ function formatError(error: unknown): string {
                 <p class="mt-1 text-sm text-[#6d6252]">
                   {{ media.file_suffix }} · {{ formatSize(media.file_size) }} · {{ media.user.username }}
                 </p>
-                <p v-if="media.file_metadata"
+                <div v-if="media.file_metadata"
                    class="mt-2 rounded-2xl bg-white/70 px-3 py-2 text-sm font-bold text-[#0f766e]">
                   <p>歌手: {{ media.file_metadata.artist || '' }}</p>
                   <p>歌名: {{ media.file_metadata.title || '' }}</p>
                   <p>专辑: {{ media.file_metadata.album || '' }}</p>
-                </p>
+                </div>
               </div>
               <span class="shrink-0 rounded-full bg-[#17130c] px-2 py-1 text-xs font-black text-[#f8f1e3]">
                 {{ media.media_id }}
@@ -580,6 +639,57 @@ function formatError(error: unknown): string {
         </div>
       </aside>
     </section>
+
+    <!-- Modal -->
+    <Teleport to="body">
+      <Transition name="modal-fade">
+        <div
+            v-if="modalAction"
+            class="fixed inset-0 z-50 flex items-center justify-center bg-[#17130c]/60 px-4 backdrop-blur-sm"
+            @click.self="closeModal"
+        >
+          <div
+              class="w-full max-w-md transform rounded-[2rem] border border-[#17130c]/10 bg-white p-6 shadow-2xl transition-all"
+              role="dialog"
+              aria-modal="true"
+          >
+            <div class="flex items-start justify-between gap-4">
+              <div>
+                <h3 class="text-2xl font-black tracking-[-0.05em]">{{ modalTitle }}</h3>
+                <p class="mt-3 leading-7 text-[#6d6252]">{{ modalMessage }}</p>
+              </div>
+              <button
+                  class="grid h-10 w-10 shrink-0 place-items-center rounded-full text-xl font-black text-[#6d6252] hover:bg-[#f1e7d7]"
+                  type="button"
+                  aria-label="关闭"
+                  @click="closeModal"
+              >
+                ×
+              </button>
+            </div>
+
+            <div class="mt-6 flex gap-3">
+              <button
+                  class="flex-1 rounded-[1.35rem] border border-[#17130c]/15 px-5 py-3 font-black text-[#40382d] hover:bg-[#f1e7d7]"
+                  type="button"
+                  @click="closeModal"
+              >
+                取消
+              </button>
+              <button
+                  class="flex-1 rounded-[1.35rem] px-5 py-3 font-black text-white shadow-lg disabled:opacity-50"
+                  :class="modalAction === 'move-media' ? 'bg-[#18a999] shadow-[#18a999]/20' : 'bg-[#8f2f17] shadow-[#8f2f17]/20'"
+                  type="button"
+                  :disabled="isMoving"
+                  @click="confirmModal"
+              >
+                {{ modalConfirmText }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
 
   </main>
 </template>

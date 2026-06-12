@@ -66,6 +66,21 @@ textarea {
     color: var(--ink);
 }
 
+input[type="date"]::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    border-radius: 0.5rem;
+    padding: 0.25rem;
+    transition: background-color 160ms ease;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator:hover {
+    background-color: rgb(24 169 153 / 0.15);
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator:active {
+    background-color: rgb(24 169 153 / 0.25);
+}
+
 input::placeholder,
 textarea::placeholder {
     color: rgb(109 98 82 / 0.62);
@@ -153,4 +168,31 @@ a:active {
         opacity: 1;
         transform: translateY(0);
     }
+}
+
+.modal-fade-enter-active,
+.modal-fade-leave-active {
+    transition: opacity 200ms ease;
+}
+
+.modal-fade-enter-active > div,
+.modal-fade-leave-active > div {
+    transition: transform 200ms ease, opacity 200ms ease;
+}
+
+.modal-fade-enter-from,
+.modal-fade-leave-to {
+    opacity: 0;
+}
+
+.modal-fade-enter-from > div,
+.modal-fade-leave-to > div {
+    opacity: 0;
+    transform: scale(0.95) translateY(-10px);
+}
+
+.modal-fade-enter-to > div,
+.modal-fade-leave-from > div {
+    opacity: 1;
+    transform: scale(1) translateY(0);
 }
